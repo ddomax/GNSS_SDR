@@ -52,6 +52,9 @@ fprintf('                   -------------------------------\n\n');
 %% Initialize constants, settings =========================================
 settings = initSettings();
 
+%% Generate customized GNSS data
+genData(settings);
+
 %% Generate plot of raw data and ask if ready to start processing =========
 try
     fprintf('Probing data (%s)...\n', settings.fileName)
@@ -67,7 +70,8 @@ end
 disp('  Raw IF data plotted ')
 disp('  (run setSettings or change settings in "initSettings.m" to reconfigure)')
 disp(' ');
-gnssStart = input('Enter "1" to initiate GNSS processing or "0" to exit : ');
+% gnssStart = input('Enter "1" to initiate GNSS processing or "0" to exit : ');
+gnssStart = 1;
 
 if (gnssStart == 1)
     disp(' ');

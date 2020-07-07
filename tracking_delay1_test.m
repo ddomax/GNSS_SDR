@@ -82,28 +82,15 @@ trackResults.pllDiscrFilt   = inf(1, settings.msToProcess);
 % trackResults.Q_E_LPF        = zeros(1, settings.msToProcess * settings.codeLength);
 % trackResults.Q_L_LPF        = zeros(1, settings.msToProcess * settings.codeLength);
 
-trackResults.I_P_CIC            = zeros(1, settings.msToProcess);
+I_E = 1000;
+I_P = 1000;
+I_L = 1000;
+Q_E = 1000;
+Q_P = 1000;
+Q_L = 1000;
 
 %--- Copy initial settings for all channels -------------------------------
 trackResults = repmat(trackResults, 1, settings.numberOfChannels);
-
-%% Initialize filter objects ==========================================
-% CIC Decimation Filters
-% DO NOT USE: LPF = repmat(cicFilter(settings.samplesPerCode,1,2),1,6);
-% Using repmat will create multiple references with the same instance
-samplesPerCode = round(settings.samplingFreq/settings.codeFreqBasis*settings.codeLength);
-symbolsPerCode = 2;
-samplesPerSymbol = 4;
-for ii=1:6
-    LPF(ii) = cicFilter(samplesPerCode/symbolsPerCode/samplesPerSymbol,1,1);
-end
-
-%% Initialize clock sync objects
-symbolSync = comm.SymbolSynchronizer(...
-    'SamplesPerSymbol',samplesPerSymbol, ...
-    'NormalizedLoopBandwidth',0.01, ...
-    'DampingFactor',1.0, ...
-    'TimingErrorDetector','Gardner (non-data-aided)');
 
 %% Initialize tracking variables ==========================================
 
@@ -264,49 +251,23 @@ for channelNr = 1:settings.numberOfChannels
             iBasebandSignal = carrSin .* rawSignal;
 
             % Now get early, late, and prompt values for each
-            I_E = sum(earlyCode  .* iBasebandSignal);
-            Q_E = sum(earlyCode  .* qBasebandSignal);
-            I_P = sum(promptCode .* iBasebandSignal);
-            Q_P = sum(promptCode .* qBasebandSignal);
-            I_L = sum(lateCode   .* iBasebandSignal);
-            Q_L = sum(lateCode   .* qBasebandSignal);
+            cur_I_E = sum(earlyCode  .* iBasebandSignal);
+            cur_Q_E = sum(earlyCode  .* qBasebandSignal);
+            cur_I_P = sum(promptCode .* iBasebandSignal);
+            cur_Q_P = sum(promptCode .* qBasebandSignal);
+            cur_I_L = sum(lateCode   .* iBasebandSignal);
+            cur_Q_L = sum(lateCode   .* qBasebandSignal);
             
-            if(blksize<=16368)
-                lessNum = 16368 - blksize;
-%                 I_E_LPF = LPF(1).CIC_LPF([earlyCode  .* iBasebandSignal,zeros(1,lessNum)]);
-%                 Q_E_LPF = LPF(2).CIC_LPF([earlyCode  .* qBasebandSignal,zeros(1,lessNum)]);
-                I_P_LPF = LPF(3).CIC_LPF([promptCode .* iBasebandSignal,zeros(1,lessNum)]);
-                Q_P_LPF = LPF(4).CIC_LPF([promptCode .* qBasebandSignal,zeros(1,lessNum)]);
-%                 I_L_LPF = LPF(5).CIC_LPF([lateCode   .* iBasebandSignal,zeros(1,lessNum)]);
-%                 Q_L_LPF = LPF(6).CIC_LPF([lateCode   .* qBasebandSignal,zeros(1,lessNum)]);
-            else
-                fprintf("blksize Error!\r\n");
-                beep
-            end
-            
-            syncOut = symbolSync(I_P_LPF+1j*Q_P_LPF);
-            
-%             I_E = mean(abs(I_E));
-%             I_P = mean(abs(I_P));
-%             I_L = mean(abs(I_L));
-%             Q_E = mean(abs(Q_E));
-%             Q_P = mean(abs(Q_P));
-%             Q_L = mean(abs(Q_L));
-            
-%             I_E = I_E(1);
-%             I_P = I_P(1);
-%             I_L = I_L(1);
-%             Q_E = Q_E(1);
-%             Q_P = Q_P(1);
-%             Q_L = Q_L(1);
-%             
-%             if(loopCnt<=2)
-%                 I_E = sum(earlyCode  .* iBasebandSignal);
-%                 Q_E = sum(earlyCode  .* qBasebandSignal);
-%                 I_P = sum(promptCode .* iBasebandSignal);
-%                 Q_P = sum(promptCode .* qBasebandSignal);
-%                 I_L = sum(lateCode   .* iBasebandSignal);
-%                 Q_L = sum(lateCode   .* qBasebandSignal);
+%             if(blksize<=16368)
+%                 lessNum = 16368 - blksize;
+%                 I_E = CIC_LPF([earlyCode  .* iBasebandSignal,zeros(1,lessNum)]);
+%                 Q_E = CIC_LPF([earlyCode  .* qBasebandSignal,zeros(1,lessNum)]);
+%                 I_P = CIC_LPF([promptCode .* iBasebandSignal,zeros(1,lessNum)]);
+%                 Q_P = CIC_LPF([promptCode .* qBasebandSignal,zeros(1,lessNum)]);
+%                 I_L = CIC_LPF([lateCode   .* iBasebandSignal,zeros(1,lessNum)]);
+%                 Q_L = CIC_LPF([lateCode   .* qBasebandSignal,zeros(1,lessNum)]);
+%             else
+%                 fprintf("blksize Error!\r\n");
 %             end
                         
             
@@ -321,9 +282,7 @@ for channelNr = 1:settings.numberOfChannels
 %% Find PLL error and update carrier NCO ----------------------------------
 
             % Implement carrier loop discriminator (phase detector)
-%             carrError = atan(Q_P / I_P) / (2.0 * pi);
-%             carrError = atan(imag(syncOut(4)) / real(syncOut(4))) / (2.0 * pi);
-            carrError = atan(Q_P_LPF(4) / I_P_LPF(4)) / (2.0 * pi);
+            carrError = atan(Q_P / I_P) / (2.0 * pi);
             
             % Implement carrier loop filter and generate NCO command
             carrNco = oldCarrNco + (tau2carr/tau1carr) * ...
@@ -333,8 +292,6 @@ for channelNr = 1:settings.numberOfChannels
 
             % Modify carrier freq based on NCO command
             carrFreq = carrFreqBasis + carrNco;
-            
-%             fprintf('D:%f I:%f F:%f\r\n',(tau2carr/tau1carr),(PDIcarr/tau1carr),carrFreqBasis);
 
             trackResults(channelNr).carrFreq(loopCnt) = carrFreq;
 
@@ -372,8 +329,6 @@ for channelNr = 1:settings.numberOfChannels
             trackResults(channelNr).Q_P(loopCnt) = Q_P;
             trackResults(channelNr).Q_L(loopCnt) = Q_L;
             
-%             trackResults(channelNr).I_P_CIC(loopCnt) = I_P_CIC;
-            
 %             N = blksize;
 %             bitsRange = ((loopCnt-1)*N+1):loopCnt*N;
 %             trackResults(channelNr).I_E_LPF(bitsRange) = I_E_LPF;
@@ -381,7 +336,15 @@ for channelNr = 1:settings.numberOfChannels
 %             trackResults(channelNr).I_L_LPF(bitsRange) = I_L_LPF;
 %             trackResults(channelNr).Q_E_LPF(bitsRange) = Q_E_LPF;
 %             trackResults(channelNr).Q_P_LPF(bitsRange) = Q_P_LPF;
-%             trackResults(channelNr).Q_L_LPF(bitsRange) = Q_L_LPF;        
+%             trackResults(channelNr).Q_L_LPF(bitsRange) = Q_L_LPF;
+%% Update delayed variables
+            I_E = cur_I_E;
+            I_P = cur_I_P;
+            I_L = cur_I_L;
+            Q_E = cur_Q_E;
+            Q_P = cur_Q_P;
+            Q_L = cur_Q_L;
+            
         end % for loopCnt
 
         % If we got so far, this means that the tracking was successful

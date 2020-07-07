@@ -1,4 +1,4 @@
-function plotTracking(channelList, trackResults, settings)
+function plotTracking_costas(trackResults, settings)
 %This function plots the tracking results for the given channel list.
 %
 %plotTracking(channelList, trackResults, settings)
@@ -33,11 +33,7 @@ function plotTracking(channelList, trackResults, settings)
 %CVS record:
 %$Id: plotTracking.m,v 1.5.2.23 2006/08/14 14:45:14 dpl Exp $
 
-% Protection - if the list contains incorrect channel numbers
-channelList = intersect(channelList, 1:settings.numberOfChannels);
-
 %=== For all listed channels ==============================================
-for channelNr = channelList
 
 %% Select (or create) and clear the figure ================================
     % The number 200 is added just for more convenient handling of the open
@@ -45,12 +41,8 @@ for channelNr = channelList
     % Figures drawn or opened by the user, will not be "overwritten" by
     % this function.
 
-    figure(channelNr +200);
-    clf(channelNr +200);
-    set(channelNr +200, 'Name', ['Channel ', num2str(channelNr), ...
-                                 ' (PRN ', ...
-                                 num2str(trackResults(channelNr).PRN), ...
-                                 ') results']);
+    figure(200);
+    clf(200);
 
 %% Draw axes ==============================================================
         % Row 1
@@ -69,8 +61,8 @@ for channelNr = channelList
         timeAxisInSeconds = (1:settings.msToProcess)/1000;
 
         %----- Discrete-Time Scatter Plot ---------------------------------
-        plot(handles(1, 1), trackResults(channelNr).I_P,...
-                            trackResults(channelNr).Q_P, ...
+        plot(handles(1, 1), trackResults.I_P,...
+                            trackResults.Q_P, ...
                             '.');
 
         grid  (handles(1, 1));
@@ -80,22 +72,16 @@ for channelNr = channelList
         ylabel(handles(1, 1), 'Q prompt');
 
         %----- Nav bits ---------------------------------------------------
-        plot  (handles(1, 2),timeAxisInSeconds, ...
-                              [trackResults(channelNr).I_E',...
-                              trackResults(channelNr).I_P',...
-                              trackResults(channelNr).I_L'...
-                              ]);
+        plot  (handles(1, 2),trackResults.I_P');
         grid  (handles(1, 2));
         title (handles(1, 2), 'Bits of the navigation message');
         xlabel(handles(1, 2), 'Time (s)');
         axis  (handles(1, 2), 'tight');
-        legend(handles(1, 2), 'I_{E}', ...
-                                'I_{P}', ...
-                                'I_{L}');
+        legend(handles(1, 2), 'I_{P}');
 
         %----- PLL discriminator unfiltered--------------------------------
-        plot  (handles(2, 1), timeAxisInSeconds, ...
-                              trackResults(channelNr).pllDiscr, 'r');      
+        plot  (handles(2, 1),  ...
+                              trackResults.pllDiscr, 'r');      
 
         grid  (handles(2, 1));
         axis  (handles(2, 1), 'tight');
@@ -103,56 +89,14 @@ for channelNr = channelList
         ylabel(handles(2, 1), 'Amplitude');
         title (handles(2, 1), 'Raw PLL discriminator');
 
-        %----- Correlation ------------------------------------------------
-        plot(handles(2, 2), timeAxisInSeconds, ...
-                            [sqrt(trackResults(channelNr).I_E.^2 + ...
-                                  trackResults(channelNr).Q_E.^2)', ...
-                             sqrt(trackResults(channelNr).I_P.^2 + ...
-                                  trackResults(channelNr).Q_P.^2)', ...
-                             sqrt(trackResults(channelNr).I_L.^2 + ...
-                                  trackResults(channelNr).Q_L.^2)'], ...
-                            '-*');
-
-        grid  (handles(2, 2));
-        title (handles(2, 2), 'Correlation results');
-        xlabel(handles(2, 2), 'Time (s)');
-        axis  (handles(2, 2), 'tight');
-        
-        hLegend = legend(handles(2, 2), '$\sqrt{I_{E}^2 + Q_{E}^2}$', ...
-                                        '$\sqrt{I_{P}^2 + Q_{P}^2}$', ...
-                                        '$\sqrt{I_{L}^2 + Q_{L}^2}$');
-                          
-        %set interpreter from tex to latex. This will draw \sqrt correctly
-        set(hLegend, 'Interpreter', 'Latex');
 
         %----- PLL discriminator filtered----------------------------------
-        plot  (handles(3, 1), timeAxisInSeconds, ...
-                              trackResults(channelNr).pllDiscrFilt, 'b');      
+        plot  (handles(3, 1),  ...
+                              trackResults.pllDiscrFilt, 'b');      
 
         grid  (handles(3, 1));
         axis  (handles(3, 1), 'tight');
         xlabel(handles(3, 1), 'Time (s)');
         ylabel(handles(3, 1), 'Amplitude');
         title (handles(3, 1), 'Filtered PLL discriminator');
-
-        %----- DLL discriminator unfiltered--------------------------------
-        plot  (handles(3, 2), timeAxisInSeconds, ...
-                              trackResults(channelNr).dllDiscr, 'r');      
-
-        grid  (handles(3, 2));
-        axis  (handles(3, 2), 'tight');
-        xlabel(handles(3, 2), 'Time (s)');
-        ylabel(handles(3, 2), 'Amplitude');
-        title (handles(3, 2), 'Raw DLL discriminator');
-
-        %----- DLL discriminator filtered----------------------------------
-        plot  (handles(3, 3), timeAxisInSeconds, ...
-                              trackResults(channelNr).dllDiscrFilt, 'b');      
-
-        grid  (handles(3, 3));
-        axis  (handles(3, 3), 'tight');
-        xlabel(handles(3, 3), 'Time (s)');
-        ylabel(handles(3, 3), 'Amplitude');
-        title (handles(3, 3), 'Filtered DLL discriminator');
-
-end % for channelNr = channelList
+end

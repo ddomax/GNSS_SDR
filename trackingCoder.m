@@ -333,8 +333,6 @@ for channelNr = 1:settings.numberOfChannels
 
             % Modify carrier freq based on NCO command
             carrFreq = carrFreqBasis + carrNco;
-            
-%             fprintf('D:%f I:%f F:%f\r\n',(tau2carr/tau1carr),(PDIcarr/tau1carr),carrFreqBasis);
 
             trackResults(channelNr).carrFreq(loopCnt) = carrFreq;
 

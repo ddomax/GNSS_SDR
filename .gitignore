@@ -1,0 +1,8 @@
+*
+!*/
+!.gitignore
+!.gitattributes
+!.DS_Store
+!*.m
+!*.md
+!*.fig

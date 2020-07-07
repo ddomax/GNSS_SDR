@@ -40,10 +40,10 @@ function settings = initSettings()
 %% Processing settings ====================================================
 % Number of milliseconds to be processed used 36000 + any transients (see
 % below - in Nav parameters) to ensure nav subframes are provided
-settings.msToProcess        = 37000;        %[ms]
+settings.msToProcess        = 1000;        %[ms]
 
 % Number of channels to be used for signal processing
-settings.numberOfChannels   = 8;
+settings.numberOfChannels   = 1;
 
 % Move the starting point of processing. Can be used to start the signal
 % processing at any point in the data record (e.g. for long records). fseek
@@ -55,13 +55,13 @@ settings.skipNumberOfBytes     = 0;
 % This is a "default" name of the data file (signal record) to be used in
 % the post-processing mode
 settings.fileName           = ...
-   '..\GNSS_signal_records\GPSdata-DiscreteComponents-fs38_192-if9_55.bin';
+   '.\myGNSSdata.bin';
 % Data type used to store one sample
 settings.dataType           = 'int8';
 
 % Intermediate, sampling and code frequencies
-settings.IF                 = 9.548e6;      %[Hz]
-settings.samplingFreq       = 38.192e6;     %[Hz]
+settings.IF                 = 4130400;      %[Hz]
+settings.samplingFreq       = 16367600;     %[Hz]
 settings.codeFreqBasis      = 1.023e6;      %[Hz]
 
 % Define number of chips in a code period
@@ -85,8 +85,8 @@ settings.dllNoiseBandwidth       = 2;       %[Hz]
 settings.dllCorrelatorSpacing    = 0.5;     %[chips]
 
 % Carrier tracking loop parameters
-settings.pllDampingRatio         = 0.7;
-settings.pllNoiseBandwidth       = 25;      %[Hz]
+settings.pllDampingRatio         = 0.7;     % 0.7
+settings.pllNoiseBandwidth       = 25;      %[Hz] 25
 
 %% Navigation solution settings ===========================================
 
