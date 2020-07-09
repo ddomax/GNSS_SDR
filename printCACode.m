@@ -4,7 +4,7 @@ addpath include             % The software receiver functions
 addpath geoFunctions        % Position calculation related functions
 
 %
-caCode = generateCAcode(5);
+caCode = generateCAcode(22); % PRN=5 for myGNSSdata_xxxx.bin PRN=22 for gioveA&B
 
 fprintf('[');
 for ii=1:(length(caCode)-1)

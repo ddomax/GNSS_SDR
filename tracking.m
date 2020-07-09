@@ -206,7 +206,7 @@ for channelNr = 1:settings.numberOfChannels
             % Update the phasestep based on code freq (variable) and
             % sampling frequency (fixed)
             codePhaseStep = codeFreq / settings.samplingFreq;
-            
+
             blksize = ceil((settings.codeLength-remCodePhase) / codePhaseStep);
             
             % Read in the appropriate number of samples to process this
@@ -264,27 +264,33 @@ for channelNr = 1:settings.numberOfChannels
             iBasebandSignal = carrSin .* rawSignal;
 
             % Now get early, late, and prompt values for each
-            I_E = sum(earlyCode  .* iBasebandSignal);
-            Q_E = sum(earlyCode  .* qBasebandSignal);
+%             I_E = sum(earlyCode  .* iBasebandSignal);
+%             Q_E = sum(earlyCode  .* qBasebandSignal);
+%             I_P = sum(promptCode .* iBasebandSignal);
+%             Q_P = sum(promptCode .* qBasebandSignal);
+%             I_L = sum(lateCode   .* iBasebandSignal);
+%             Q_L = sum(lateCode   .* qBasebandSignal);
+            I_E = sum(lateCode   .* iBasebandSignal);
+            Q_E = sum(lateCode   .* qBasebandSignal);
             I_P = sum(promptCode .* iBasebandSignal);
             Q_P = sum(promptCode .* qBasebandSignal);
-            I_L = sum(lateCode   .* iBasebandSignal);
-            Q_L = sum(lateCode   .* qBasebandSignal);
+            I_L = sum(earlyCode  .* iBasebandSignal);
+            Q_L = sum(earlyCode  .* qBasebandSignal);
             
-            if(blksize<=16368)
-                lessNum = 16368 - blksize;
-%                 I_E_LPF = LPF(1).CIC_LPF([earlyCode  .* iBasebandSignal,zeros(1,lessNum)]);
-%                 Q_E_LPF = LPF(2).CIC_LPF([earlyCode  .* qBasebandSignal,zeros(1,lessNum)]);
-                I_P_LPF = LPF(3).CIC_LPF([promptCode .* iBasebandSignal,zeros(1,lessNum)]);
-                Q_P_LPF = LPF(4).CIC_LPF([promptCode .* qBasebandSignal,zeros(1,lessNum)]);
-%                 I_L_LPF = LPF(5).CIC_LPF([lateCode   .* iBasebandSignal,zeros(1,lessNum)]);
-%                 Q_L_LPF = LPF(6).CIC_LPF([lateCode   .* qBasebandSignal,zeros(1,lessNum)]);
-            else
-                fprintf("blksize Error!\r\n");
-                beep
-            end
+%             if(blksize<=16368)
+%                 lessNum = 16368 - blksize;
+% %                 I_E_LPF = LPF(1).CIC_LPF([earlyCode  .* iBasebandSignal,zeros(1,lessNum)]);
+% %                 Q_E_LPF = LPF(2).CIC_LPF([earlyCode  .* qBasebandSignal,zeros(1,lessNum)]);
+%                 I_P_LPF = LPF(3).CIC_LPF([promptCode .* iBasebandSignal,zeros(1,lessNum)]);
+%                 Q_P_LPF = LPF(4).CIC_LPF([promptCode .* qBasebandSignal,zeros(1,lessNum)]);
+% %                 I_L_LPF = LPF(5).CIC_LPF([lateCode   .* iBasebandSignal,zeros(1,lessNum)]);
+% %                 Q_L_LPF = LPF(6).CIC_LPF([lateCode   .* qBasebandSignal,zeros(1,lessNum)]);
+%             else
+%                 fprintf("blksize Error!\r\n");
+%                 beep
+%             end
             
-            syncOut = symbolSync(I_P_LPF+1j*Q_P_LPF);
+%             syncOut = symbolSync(I_P_LPF+1j*Q_P_LPF);
             
 %             I_E = mean(abs(I_E));
 %             I_P = mean(abs(I_P));
@@ -321,9 +327,9 @@ for channelNr = 1:settings.numberOfChannels
 %% Find PLL error and update carrier NCO ----------------------------------
 
             % Implement carrier loop discriminator (phase detector)
-%             carrError = atan(Q_P / I_P) / (2.0 * pi);
+            carrError = atan(Q_P / I_P) / (2.0 * pi);
 %             carrError = atan(imag(syncOut(4)) / real(syncOut(4))) / (2.0 * pi);
-            carrError = atan(Q_P_LPF(4) / I_P_LPF(4)) / (2.0 * pi);
+%             carrError = atan(Q_P_LPF(4) / I_P_LPF(4)) / (2.0 * pi);
             
             % Implement carrier loop filter and generate NCO command
             carrNco = oldCarrNco + (tau2carr/tau1carr) * ...
@@ -339,9 +345,11 @@ for channelNr = 1:settings.numberOfChannels
             trackResults(channelNr).carrFreq(loopCnt) = carrFreq;
 
 %% Find DLL error and update code NCO -------------------------------------
-            codeError = (sqrt(I_E * I_E + Q_E * Q_E) - sqrt(I_L * I_L + Q_L * Q_L)) / ...
-                (sqrt(I_E * I_E + Q_E * Q_E) + sqrt(I_L * I_L + Q_L * Q_L));
-            
+%             codeError = (sqrt(I_E * I_E + Q_E * Q_E) - sqrt(I_L * I_L + Q_L * Q_L)) / ...
+%                 (sqrt(I_E * I_E + Q_E * Q_E) + sqrt(I_L * I_L + Q_L * Q_L));
+            codeError = ((I_E * I_E + Q_E * Q_E) - (I_L * I_L + Q_L * Q_L)) / ...
+                ((I_E * I_E + Q_E * Q_E) + (I_L * I_L + Q_L * Q_L));
+          
             % Implement code loop filter and generate NCO command
             codeNco = oldCodeNco + (tau2code/tau1code) * ...
                 (codeError - oldCodeError) + codeError * (PDIcode/tau1code);
@@ -350,9 +358,9 @@ for channelNr = 1:settings.numberOfChannels
             
             codeNco = (codeNco-preCodeNco)*(PID_D) + codeNco;
             preCodeNco = codeNco;
-            
+%             fprintf('D:%f I:%f F:%f\r\n',(tau2code/tau1code),(PDIcode/tau1code),settings.codeFreqBasis);
             % Modify code freq based on NCO command
-            codeFreq = settings.codeFreqBasis - codeNco;
+            codeFreq = settings.codeFreqBasis + codeNco;
             
             trackResults(channelNr).codeFreq(loopCnt) = codeFreq;
 

@@ -92,7 +92,7 @@ trackResults = repmat(trackResults, 1, settings.numberOfChannels);
 % DO NOT USE: LPF = repmat(cicFilter(settings.samplesPerCode,1,2),1,6);
 % Using repmat will create multiple references with the same instance
 samplesPerCode = round(settings.samplingFreq/settings.codeFreqBasis*settings.codeLength);
-symbolsPerCode = 2;
+symbolsPerCode = 0.5;
 samplesPerSymbol = 4;
 for ii=1:6
     LPF(ii) = cicFilter(samplesPerCode/symbolsPerCode/samplesPerSymbol,1,1);
